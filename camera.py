@@ -1,6 +1,17 @@
 import numpy as np
 import cv2
+import time
+import Adafruit_GPIO.SPI as SPI
+import Adafruit_SSD1306
+from PIL import Image
 cap = cv2.VideoCapture(0)
+RST = 24
+disp = Adafruit_SSD1306.SSD1306_128_64(rst=RST)
+disp.begin()
+disp.clear()
+disp.display()
+background_original = cv2.imread('background.ppm')
+background = background_original
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
@@ -12,14 +23,22 @@ while True:
         print("Can't receive frame (stream end?). Exiting ...")
         break
     # Our operations on the frame come here
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    gray = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY), 0)
     # Display the resulting frame
-    cv2.imshow('frame', gray)
+    cv2.imshow('frame', cv2.flip(frame, 0))
     if cv2.waitKey(1) == ord('q'):
-        cv2.imwrite('capture.ppm', image_bgr)
+        cv2.imwrite('image.ppm', background)
+        image = Image.open('image.ppm').convert('1')
+        disp.image(image)
+        disp.display()
         break
-    image_grey = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    image_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    cv2.imwrite('image.ppm', background)
+    image = Image.open('image.ppm').convert('1')
+    disp.image(image)
+    disp.display()
+    image_grey = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY), 0)
+    image_bgr = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR), 0)
+    image_small = cv2.resize(image_bgr, (128, 64))
 
     eye_classifier = cv2.CascadeClassifier(
         f"{cv2.data.haarcascades}haarcascade_eye.xml")
