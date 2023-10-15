@@ -8,6 +8,10 @@ from skimage.color import rgb2gray
 # Split data into input and output sets
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+from PIL import Image
+
 
 # x is all input values of images and their pixel values (90 images * 67500)
 # y is output values or correct label of image (90 images * 1 column of labels)
@@ -16,10 +20,17 @@ from joblib import dump, load
 target = []
 flat_data = []
 images = []
-DataDirectory = 'Classification_Images'
+DataDirectory = '/Users/darren/python_recognization/Classification_Images'
 
 # Images to be classified as:
 Categories = ["crowd_cheering","smile","wave"]
+
+# Create a 2x2 grid of subplots
+fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+
+# Flatten the axes (axs) if you want to iterate through it in a single loop
+axs = axs.flatten()
+img_idx = 0
 
 for i in Categories:
   print("Category is:",i,"\tLabel encoded as:",Categories.index(i))
@@ -28,11 +39,26 @@ for i in Categories:
   # Create data path for all folders under MinorProject
   path = os.path.join(DataDirectory,i)
   # Image resizing, to ensure all images are of same dimensions
+  img_shown = False
+
   for img in os.listdir(path):
-    img_array = imread(os.path.join(path,img))
+    # img_array = imread(os.path.join(path,img))
+    img_array = Image.open(os.path.join(path, img))
+
+    if img_array.mode != 'RGB':
+        img_array = img_array.convert('RGB')
+    img_array = np.array(img_array)
+    if not img_shown:
+      print('showing image ', img_idx)
+      # plt.imshow(img_array)
+      axs[img_idx].imshow(img_array)
+      img_idx += 1
+      img_shown = True
     # Skimage normalizes the value of image
-    img_resized = resize(img_array,(150,150,3))
-    flat_data.append(img_resized.flatten())
+    img_resized = resize(img_array,(150,150,3))[0]
+    flat_image = img_resized.flatten()
+    print(flat_image.shape)
+    flat_data.append(flat_image)
     images.append(img_resized)
     target.append(target_class)
 # Convert list to numpy array format
