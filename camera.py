@@ -3,6 +3,7 @@ import cv2
 import time
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_SSD1306
+from threading import Thread
 from PIL import Image
 cap = cv2.VideoCapture(0)
 RST = 24
@@ -24,70 +25,71 @@ while True:
         break
     # Our operations on the frame come here
     gray = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY), 0)
-    # Display the resulting frame
-    cv2.imshow('frame', cv2.flip(frame, 0))
-    if cv2.waitKey(1) == ord('q'):
-        cv2.imwrite('image.ppm', background)
-        image = Image.open('image.ppm').convert('1')
-        disp.image(image)
-        disp.display()
-        break
-    cv2.imwrite('image.ppm', background)
-    image = Image.open('image.ppm').convert('1')
-    disp.image(image)
-    disp.display()
-    image_grey = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY), 0)
     image_bgr = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR), 0)
     image_small = cv2.resize(image_bgr, (128, 64))
+    # Display the resulting frame
+    cv2.imshow('frame', cv2.flip(frame, 0))
+    if cv2.waitKey(1) == ord('q')or True:
+        cv2.imwrite('capture.ppm', image_small)
+        #image = Image.open('capture.ppm').convert('1')
+        #disp.image(image)
+        #disp.display()
+    cv2.imwrite('image.ppm', background)
+    image = Image.open('image.ppm').convert('1')
+    image_grey = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY), 0)
+def capture():
+    global disp
+    while True:
+        predict()
+        
+def predict():
+    img = "capture.ppm"
+    path = "/home/pi/python_recognization/face_image.jpg"
+    # img_array = imread(os.path.join(path,img))
+    img_array = Image.open(path)
+    img_shown=False
+    flat_data = []
+    images = []
+    target = []
+    target_class = []
+    img_idx=0
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    axs = axs.flatten()
 
-    eye_classifier = cv2.CascadeClassifier(
-        f"{cv2.data.haarcascades}haarcascade_eye.xml")
-
-    face_classifier = cv2.CascadeClassifier(
-        f"{cv2.data.haarcascades}haarcascade_frontalface_alt.xml")
-
-    smile_classifier = cv2.CascadeClassifier(
-        f"{cv2.data.haarcascades}haarcascade_smile.xml")
-
-    catface_classifier = cv2.CascadeClassifier(f"{cv2.data.haarcascades}haarcascade_frontalcatface.xml")
-
-    profileface_classifier = cv2.CascadeClassifier(f"{cv2.data.haarcascades}haarcascade_profileface.xml")
-
-    detected_eyes = eye_classifier.detectMultiScale(image_grey, minSize=(10, 10))
-    detected_face = face_classifier.detectMultiScale(image_grey, minSize=(15, 15))
-    detected_smile = smile_classifier.detectMultiScale(image_grey, minSize=(200, 150))
-    detected_cat = catface_classifier.detectMultiScale(image_grey, minSize=(5, 5))
-    detected_profileface = profileface_classifier.detectMultiScale(image_grey, minSize=(15, 15))
-    if len(detected_eyes) != 0:
-        for (x, y, width, height) in detected_eyes:
-            cv2.rectangle(frame, (x, y),
-                          (x + height, y + width),
-                          (0, 255, 0), 2)
-    # Draw rectangles on eyes
-    if len(detected_face) != 0:
-        for (x, y, width, height) in detected_face:
-            cv2.rectangle(frame, (x, y),
-                          (x + height, y + width),
-                          (255, 0, 0), 2)
-            
-    # Draw rectangles on eyes
-    if len(detected_smile) != 0:
-        for (x, y, width, height) in detected_smile:
-            cv2.rectangle(frame, (x, y),
-                          (x + height, y + width),
-                          (0, 0, 255), 2)
-    if len(detected_cat) != 0:
-        for (x, y, width, height) in detected_cat:
-            cv2.rectangle(frame, (x, y),
-                          (x + height, y + width),
-                          (255, 0, 255), 2)
-    if len(detected_profileface) != 0:
-        for (x, y, width, height) in detected_profileface:
-            cv2.rectangle(frame, (x, y),
-                          (x + height, y + width),
-                          (0, 255, 255), 2)
-
-cap = cv2.VideoCapture(0)
+    if img_array.mode != 'RGB':
+        img_array = img_array.convert('RGB')
+    img_array = np.array(img_array)
+    if not img_shown:
+      print('showing image ', img_idx)
+      # plt.imshow(img_array)
+      axs[img_idx].imshow(img_array)
+      img_idx += 1
+      img_shown = True
+    # Skimage normalizes the value of image
+    img_resized = resize(img_array,(150,150,3))[0]
+    flat_image = img_resized.flatten()
+    print(flat_image.shape)
+    flat_data.append(flat_image)
+    images.append(img_resized)
+    target.append(target_class)
+    # Convert list to numpy array format
+    flat_data = np.array(flat_data)
+    images = np.array(images)
+    target = np.array(target)
+    df = pd.DataFrame(flat_data)
+    # Create a column for output data called Target
+    #df['Target'] = target
+    # Rows are all the input images (90 images, 30 of each category)
+    print(df)
+    model = load("model.joblib")
+    prediction = model.predict(df)
+    if prediction == [1]:
+        image = Image.open("pose_images/dance_0.ppm")
+    else:
+        image = Image.open("background.ppm")
+    disp.display()
+    
+Thread(capture).start()
 # When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows()
