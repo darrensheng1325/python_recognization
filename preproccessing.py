@@ -11,6 +11,7 @@ from joblib import dump, load
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 from PIL import Image
+from sklearn.ensemble import RandomForestClassifier
 
 
 # x is all input values of images and their pixel values (90 images * 67500)
@@ -92,7 +93,8 @@ tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
                     
 # Apply GridSearchCV to find best parameters for given dataset
 # verbose is used to describe the steps taken to find best parameters
-cv = GridSearchCV(SVC(), tuned_parameters, refit = True,verbose= 3) 
+#cv = GridSearchCV(SVC(), tuned_parameters, refit = True,verbose= 3)
+cv = RandomForestClassifier(n_estimators=100, max_depth=2,random_state=0) 
 cv.fit(x_train,y_train)
 # Save the model to a file.
 filename = "model.joblib"
